@@ -1,29 +1,47 @@
-import argparse
-import logging
-from lesson13.student_exeptions import StudentNameError, InvalidSubjectError, InvalidScoreError
-from lesson13.student import Student
+from student_exeptions import StudentNameError, InvalidSubjectError, InvalidScoreError
+import csv
 
-logging.basicConfig(filename='student.log', level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
+class Student:
+    def __init__(self, name, csv_filename):
+        if not name.istitle() or not name.replace(" ", "").isalpha():
+            raise StudentNameError()
 
+        self.name = name
+        self.subjects = self.load_subjects_from_csv(csv_filename)
+        self.scores = {subject: [] for subject in self.subjects}
+        self.test_results = {subject: [] for subject in self.subjects}
 
-def main():
-    parser = argparse.ArgumentParser(description='Process student information.')
-    parser.add_argument('name', help='Student name')
-    parser.add_argument('csv_filename', help='CSV filename')
-    args = parser.parse_args()
+    def load_subjects_from_csv(self, csv_filename):
+        """Load subjects from a CSV file and return them as a list."""
+        with open(csv_filename, "r") as file:
+            reader = csv.reader(file)
+            return next(reader)
 
-    try:
-        student = Student(args.name, args.csv_filename)
+    def add_score(self, subject, score):
+        if subject not in self.subjects:
+            raise InvalidSubjectError(subject)
+        
+        if score < 2 or score > 5:
+            raise InvalidScoreError(score)
+        
+        self.scores[subject].append(score)
 
-        # Вызываем ошибку класса Student 
-        student.add_score('Math', 6)
+    def add_test_result(self, subject, result):
+        if subject not in self.subjects:
+            raise InvalidSubjectError(subject)
+        
+        if result < 0 or result > 100:
+            raise InvalidScoreError(result, score_type="Результат теста")
+        
+        self.test_results[subject].append(result)
 
-    except StudentNameError:
-        logging.error('Invalid student name format.')
-    except InvalidSubjectError as e:
-        logging.error(f'Invalid subject: {e.subject}')
-    except InvalidScoreError as e:
-        logging.error(f'Invalid score: {e.score}')
+    def average_test_score(self, subject):
+        if subject not in self.subjects:
+            raise InvalidSubjectError(subject)
+        
+        return sum(self.test_results[subject]) / len(self.test_results[subject]) if self.test_results[subject] else 0
 
-if __name__ == '__main__':
-    main()
+    def average_score(self):
+        total_scores = sum([sum(scores) for scores in self.scores.values()])
+        total_count = sum([len(scores) for scores in self.scores.values()])
+        return total_scores / total_count if total_count else 0
